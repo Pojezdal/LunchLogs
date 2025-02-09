@@ -128,7 +128,12 @@
             let count = document.getElementById('foodCount').value;
             let { data, error } = await supabase.rpc('oldest_used_foods', { count: parseInt(count) });
             if (error) return console.error(error);
-            document.getElementById('unusedFoods').innerHTML = data.map(f => `<li>${f.name}</li>`).join('');
+            let today = new Date();
+            document.getElementById('unusedFoods').innerHTML = data.map(f => {
+                let lastUsedDate = new Date(f.last_used);
+                let daysSinceLastUsed = Math.floor((today - lastUsedDate) / (1000 * 60 * 60 * 24));
+                return `<li>${f.name} - Last used: ${daysSinceLastUsed} days ago</li>`;
+            }).join('');
         }
         
         async function getFoodLogs() {
