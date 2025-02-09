@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lunch Logger</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; }
+        input, select, button { display: block; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>Lunch Logger</h1>
+    
+    <h2>Add Food</h2>
+    <input type="text" id="foodName" placeholder="Food Name">
+    <button onclick="addFood()">Add Food</button>
+
+    <h2>Delete Food</h2>
+    <select id="deleteFoodSelect"></select>
+    <button onclick="confirmDeleteFood()">Delete Selected Food</button>
+    
+    <h2>Log Lunch</h2>
+    <select id="foodSelect"></select>
+    <input type="date" id="lunchDate" value="">
+    <input type="text" id="lunchNote" placeholder="Optional Note">
+    <button onclick="logLunch()">Log Lunch</button>
+    
+    <h2>Oldest Unused Foods</h2>
+    <label for="foodCount">Number of foods:</label>
+    <select id="foodCount">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="7">7</option>
+        <option value="8">8</option>
+        <option value="9">9</option>
+        <option value="10">10</option>
+    </select>
+    <button onclick="getOldestUsedFoods()">Fetch</button>
+    <ul id="unusedFoods"></ul>
+    
+    <h2>Food Logs & Stats</h2>
+    <select id="logFoodSelect"></select>
+    <button onclick="getFoodLogs()">Fetch Logs</button>
+    <ul id="foodLogs"></ul>
+    <p id="foodStats"></p>
+
+    <h2>Logs of Last X Days</h2>
+    <label for="daysCount">Number of days:</label>
+    <select id="daysCount">
+        <option value="2">2</option>
+        <option value="5">5</option>
+        <option value="7">7</option>
+        <option value="14">14</option>
+    </select>
+    <button onclick="getLogsOfLastXDays()">Fetch Logs</button>
+    <ul id="logsOfLastXDays"></ul>
+
+    <h2>Random Food Not Used for X Days</h2>
+    <label for="unusedDaysCount">Number of days:</label>
+    <select id="unusedDaysCount">
+        <option value="7">7</option>
+        <option value="14">14</option>
+        <option value="21">21</option>
+        <option value="28">28</option>
+        <option value="35">35</option>
+        <option value="42">42</option>
+    </select>
+    <button onclick="getRandomUnusedFood()">Get Random Food</button>
+    <p id="randomUnusedFood"></p>
+    
+    <script>
+        const supabaseUrl = "https://lzcttpvfhmsgnbdkfuic.supabase.co";
+        const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6Y3R0cHZmaG1zZ25iZGtmdWljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkwMzkyNDAsImV4cCI6MjA1NDYxNTI0MH0.18DlohrVQk2o63BfqHuDPbIsyDSXklG1WjzacBNG9KE";
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        
+        async function fetchFoods() {
+            let { data, error } = await supabase.from('food_names').select('*');
+            if (error) return console.error(error);
+            
+            data.sort((a, b) => a.name.localeCompare(b.name));
+            
+            let foodSelect = document.getElementById('foodSelect');
+            let logFoodSelect = document.getElementById('logFoodSelect');
+            let deleteFoodSelect = document.getElementById('deleteFoodSelect');
+            foodSelect.innerHTML = logFoodSelect.innerHTML = deleteFoodSelect.innerHTML = '';
+            
+            data.forEach(food => {                
+                let option = new Option(food.name, food.id);
+                foodSelect.add(option);
+                logFoodSelect.add(new Option(food.name, food.id));
+                deleteFoodSelect.add(new Option(food.name, food.id));
+            });
+        }
+        
+        async function addFood() {
+            let name = document.getElementById('foodName').value.trim();
+            if (!name) return;
+            await supabase.from('food_names').insert([{ name }]);
+            fetchFoods();
+        }
+        
+        async function confirmDeleteFood() {
+            let food_id = document.getElementById('deleteFoodSelect').value;
+            if (confirm("Are you sure you want to delete this food?")) {
+                await deleteFood(food_id);
+            }
+        }
+
+        async function deleteFood(id) {
+            await supabase.from('food_names').delete().eq('id', id);
+            fetchFoods();
+        }
+        
+        async function logLunch() {
+            let food_id = document.getElementById('foodSelect').value;
+            let date = document.getElementById('lunchDate').value || new Date().toISOString().split('T')[0];
+            let note = document.getElementById('lunchNote').value;
+            await supabase.from('lunches').insert([{ "food": food_id, "date": date, "note": note }]);
+        }
+        
+        async function getOldestUsedFoods() {
+            let count = document.getElementById('foodCount').value;
+            let { data, error } = await supabase.rpc('oldest_used_foods', { count: parseInt(count) });
+            if (error) return console.error(error);
+            document.getElementById('unusedFoods').innerHTML = data.map(f => `<li>${f.name}</li>`).join('');
+        }
+        
+        async function getFoodLogs() {
+            let food_id = document.getElementById('logFoodSelect').value;
+            let { data, error } = await supabase.from('lunches').select('*').eq('food', food_id).order('date', { ascending: false });
+            if (error) return console.error(error);
+            
+            let logList = document.getElementById('foodLogs');
+            logList.innerHTML = data.map(log => `<li>${log.date}: ${log.note || 'No note'}</li>`).join('');
+            
+            if (data.length > 1) {
+                let lastDate = new Date(data[0].date);
+                let firstDate = new Date(data[data.length - 1].date);
+                let daysSinceLast = Math.floor((new Date() - lastDate) / (1000 * 60 * 60 * 24));
+                let avgUsage = (data.length - 1) / ((lastDate - firstDate) / (1000 * 60 * 60 * 24) / 30.4);
+                document.getElementById('foodStats').textContent = `Days since last: ${daysSinceLast}, Avg usage: ${avgUsage.toFixed(2)} times per month.`;
+            }
+        }
+
+        async function getLogsOfLastXDays() {
+            let daysCount = document.getElementById('daysCount').value;
+            let endDate = new Date();
+            let startDate = new Date();
+            startDate.setDate(endDate.getDate() - daysCount + 1);
+            
+            let { data, error } = await supabase.from('lunches').select('*, food_names(name)').gte('date', startDate.toISOString().split('T')[0]).lte('date', endDate.toISOString().split('T')[0]).order('date', { ascending: false });
+            if (error) return console.error(error);
+            
+            let logs = {};
+            data.forEach(log => {
+                logs[log.date] = { note: log.note || 'No note', name: log.food_names.name };
+            });
+            
+            let logList = document.getElementById('logsOfLastXDays');
+            logList.innerHTML = '';
+            for (let d = endDate; d >= startDate; d.setDate(d.getDate() - 1)) {
+                let dateStr = d.toISOString().split('T')[0];
+                if (logs[dateStr]) {
+                    logList.innerHTML += `<li>${dateStr}: ${logs[dateStr].name} - ${logs[dateStr].note}</li>`;
+                } else {
+                    logList.innerHTML += `<li>${dateStr}: No Log Available</li>`;
+                }
+            }
+        }
+
+        async function getRandomUnusedFood() {
+            let daysCount = document.getElementById('unusedDaysCount').value;
+            let endDate = new Date();
+            let startDate = new Date();
+            startDate.setDate(endDate.getDate() - daysCount);
+
+            let { data, error } = await supabase.rpc('random_unused_food', { start_date: startDate.toISOString().split('T')[0] });
+            if (error) return console.error(error);
+            if (data.length > 0) {
+                document.getElementById('randomUnusedFood').textContent = `Random Food: ${data[0].name}`;
+            } else {
+                document.getElementById('randomUnusedFood').textContent = 'No food found that was not used for the specified amount of days.';
+            }
+        }
+        
+        document.addEventListener("DOMContentLoaded", () => {
+            fetchFoods();
+            document.getElementById('lunchDate').value = new Date().toISOString().split('T')[0];
+        });
+    </script>
+</body>
+</html>
+
