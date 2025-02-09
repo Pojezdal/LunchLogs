@@ -8,13 +8,21 @@
     <style>
         body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; }
         input, select, button { display: block; margin: 10px 0; }
+        input[type="radio"] { display: inline; margin-right: 5px; }
     </style>
 </head>
 <body>
     <h1>Lunch Logger</h1>
     
+    <h2>Today's Lunches</h2>
+    <ul id="todaysLunches"></ul>
+    
     <h2>Add Food</h2>
     <input type="text" id="foodName" placeholder="Food Name">
+    <input type="radio" id="addMain" name="addType" value="main" checked>
+    <label for="addMain">Main</label>
+    <input type="radio" id="addSoup" name="addType" value="soup">
+    <label for="addSoup">Soup</label>
     <button onclick="addFood()">Add Food</button>
 
     <h2>Delete Food</h2>
@@ -28,6 +36,10 @@
     <button onclick="logLunch()">Log Lunch</button>
     
     <h2>Oldest Unused Foods</h2>
+    <input type="radio" id="oldMain" name="oldType" value="main" checked>
+    <label for="oldMain">Main</label>
+    <input type="radio" id="oldSoup" name="oldType" value="soup">
+    <label for="oldSoup">Soup</label><br>
     <label for="foodCount">Number of foods:</label>
     <select id="foodCount">
         <option value="1">1</option>
@@ -62,6 +74,10 @@
     <ul id="logsOfLastXDays"></ul>
 
     <h2>Random Food Not Used for X Days</h2>
+    <input type="radio" id="randMain" name="randType" value="main" checked>
+    <label for="randMain">Main</label>
+    <input type="radio" id="randSoup" name="randType" value="soup">
+    <label for="randSoup">Soup</label><br>
     <label for="unusedDaysCount">Number of days:</label>
     <select id="unusedDaysCount">
         <option value="7">7</option>
@@ -73,6 +89,10 @@
     </select>
     <button onclick="getRandomUnusedFood()">Get Random Food</button>
     <p id="randomUnusedFood"></p>
+    
+    <h2>Select Date</h2>
+    <input type="date" id="selectedDate" onchange="fetchLunchesByDate()">
+    <ul id="lunchesByDate"></ul>
     
     <script>
         const supabaseUrl = "https://lzcttpvfhmsgnbdkfuic.supabase.co";
@@ -100,9 +120,11 @@
         
         async function addFood() {
             let name = document.getElementById('foodName').value.trim();
-            if (!name) return;
-            await supabase.from('food_names').insert([{ name }]);
+            let food_type = document.querySelector('input[name="addType"]:checked').value;
+            if (!name || !food_type) return;
+            await supabase.from('food_names').insert([{ name, food_type }]);
             fetchFoods();
+            alert(`Food ${name} added successfully.`);
         }
         
         async function confirmDeleteFood() {
@@ -122,11 +144,14 @@
             let date = document.getElementById('lunchDate').value || new Date().toISOString().split('T')[0];
             let note = document.getElementById('lunchNote').value;
             await supabase.from('lunches').insert([{ "food": food_id, "date": date, "note": note }]);
+            alert('Lunch added successfully.');
+            fetchTodaysLunches();
         }
         
         async function getOldestUsedFoods() {
             let count = document.getElementById('foodCount').value;
-            let { data, error } = await supabase.rpc('oldest_used_foods', { count: parseInt(count) });
+            let food_type = document.querySelector('input[name="oldType"]:checked').value;
+            let { data, error } = await supabase.rpc('oldest_used_foods', { "count": parseInt(count), "f_type": food_type });
             if (error) return console.error(error);
             let today = new Date();
             document.getElementById('unusedFoods').innerHTML = data.map(f => {
@@ -159,12 +184,14 @@
             let startDate = new Date();
             startDate.setDate(endDate.getDate() - daysCount + 1);
             
-            let { data, error } = await supabase.from('lunches').select('*, food_names(name)').gte('date', startDate.toISOString().split('T')[0]).lte('date', endDate.toISOString().split('T')[0]).order('date', { ascending: false });
+            let { data, error } = await supabase.from('lunches').select('*, food_names(name, food_type)').gte('date', startDate.toISOString().split('T')[0]).lte('date', endDate.toISOString().split('T')[0]).order('date', { ascending: false });
             if (error) return console.error(error);
             
             let logs = {};
             data.forEach(log => {
-                logs[log.date] = { note: log.note || 'No note', name: log.food_names.name };
+                if (!logs[log.date])
+                    logs[log.date] = { main: [], soup: [] };
+                logs[log.date][log.food_names.food_type].push({ note: log.note || 'No note', name: log.food_names.name });
             });
             
             let logList = document.getElementById('logsOfLastXDays');
@@ -172,7 +199,11 @@
             for (let d = endDate; d >= startDate; d.setDate(d.getDate() - 1)) {
                 let dateStr = d.toISOString().split('T')[0];
                 if (logs[dateStr]) {
-                    logList.innerHTML += `<li>${dateStr}: ${logs[dateStr].name} - ${logs[dateStr].note}</li>`;
+                    for (let type in logs[dateStr]) {
+                        if (logs[dateStr][type].length > 0) {
+                            logList.innerHTML += `<li>${dateStr} - ${type}: ${logs[dateStr][type].map(l => `${l.name} (${l.note})`).join(', ')}</li>`;
+                        }
+                    }
                 } else {
                     logList.innerHTML += `<li>${dateStr}: No Log Available</li>`;
                 }
@@ -181,21 +212,45 @@
 
         async function getRandomUnusedFood() {
             let daysCount = document.getElementById('unusedDaysCount').value;
+            let food_type = document.querySelector('input[name="randType"]:checked').value;
             let endDate = new Date();
             let startDate = new Date();
             startDate.setDate(endDate.getDate() - daysCount);
 
-            let { data, error } = await supabase.rpc('random_unused_food', { start_date: startDate.toISOString().split('T')[0] });
+            let { data, error } = await supabase.rpc('random_unused_food', { start_date: startDate.toISOString().split('T')[0], f_type: food_type });
             if (error) return console.error(error);
             if (data.length > 0) {
                 document.getElementById('randomUnusedFood').textContent = `Random Food: ${data[0].name}`;
             } else {
-                document.getElementById('randomUnusedFood').textContent = 'No food found that was not used for the specified amount of days.';
+                document.getElementById('randomUnusedFood').textContent = `No ${food_type} food found that was not used for the specified amount of days.`;
+            }
+        }
+
+        async function fetchTodaysLunches() {
+            let today = new Date().toISOString().split('T')[0];
+            let { data, error } = await supabase.from('lunches').select('*, food_names(name)').eq('date', today);
+            if (error) return console.error(error);
+            
+            let lunchList = document.getElementById('todaysLunches');
+            lunchList.innerHTML = data.map(lunch => `<li>${lunch.food_names.name}: ${lunch.note || ''}</li>`).join('');
+        }
+
+        async function fetchLunchesByDate() {
+            let selectedDate = document.getElementById('selectedDate').value;
+            let { data, error } = await supabase.from('lunches').select('*, food_names(name)').eq('date', selectedDate);
+            if (error) return console.error(error);
+            
+            let lunchList = document.getElementById('lunchesByDate');
+            if (data.length === 0) {
+                lunchList.innerHTML = '<li>No logs available for this date.</li>';
+            } else {
+                lunchList.innerHTML = data.map(lunch => `<li>${lunch.food_names.name}: ${lunch.note || ''}</li>`).join('');
             }
         }
         
         document.addEventListener("DOMContentLoaded", () => {
             fetchFoods();
+            fetchTodaysLunches();
             document.getElementById('lunchDate').value = new Date().toISOString().split('T')[0];
         });
     </script>
