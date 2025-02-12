@@ -9,90 +9,110 @@
         body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; }
         input, select, button { display: block; margin: 10px 0; }
         input[type="radio"] { display: inline; margin-right: 5px; }
+        summary { font-size: 1.2em; font-weight: bold; padding: 5px 0; }
+        .pink_label { color: rgb(226, 24, 182); }
     </style>
 </head>
 <body>
     <h1>Lunch Logger</h1>
     
-    <h2>Today's Lunches</h2>
-    <ul id="todaysLunches"></ul>
     
-    <h2>Add Food</h2>
-    <input type="text" id="foodName" placeholder="Food Name">
-    <input type="radio" id="addMain" name="addType" value="main" checked>
-    <label for="addMain">Main</label>
-    <input type="radio" id="addSoup" name="addType" value="soup">
-    <label for="addSoup">Soup</label>
-    <button onclick="addFood()">Add Food</button>
+    <h3 class="pink_label">Today's Lunches</h3>
+    <ul id="todaysLunches" class="pink_label"></ul>
+    
+    
+    <details>
+        <summary>Add Food</summary>
+        <input type="text" id="foodName" placeholder="Food Name">
+        <input type="radio" id="addMain" name="addType" value="main" checked>
+        <label for="addMain">Main</label>
+        <input type="radio" id="addSoup" name="addType" value="soup">
+        <label for="addSoup">Soup</label>
+        <button onclick="addFood()">Add Food</button>
+    </details>
 
-    <h2>Delete Food</h2>
-    <select id="deleteFoodSelect"></select>
-    <button onclick="confirmDeleteFood()">Delete Selected Food</button>
+    <details>
+        <summary>Delete Food</summary>
+        <select id="deleteFoodSelect"></select>
+        <button onclick="confirmDeleteFood()">Delete Selected Food</button>
+    </details>
     
-    <h2>Log Lunch</h2>
-    <select id="foodSelect"></select>
-    <input type="date" id="lunchDate" value="">
-    <input type="text" id="lunchNote" placeholder="Optional Note">
-    <button onclick="logLunch()">Log Lunch</button>
+    <details open>
+        <summary>Log Lunch</summary>
+        <select id="foodSelect"></select>
+        <input type="date" id="lunchDate" value="">
+        <input type="text" id="lunchNote" placeholder="Optional Note">
+        <button onclick="logLunch()">Log Lunch</button>
+    </details>
     
-    <h2>Oldest Unused Foods</h2>
-    <input type="radio" id="oldMain" name="oldType" value="main" checked>
-    <label for="oldMain">Main</label>
-    <input type="radio" id="oldSoup" name="oldType" value="soup">
-    <label for="oldSoup">Soup</label><br>
-    <label for="foodCount">Number of foods:</label>
-    <select id="foodCount">
-        <option value="1">1</option>
-        <option value="2">2</option>
-        <option value="3">3</option>
-        <option value="4">4</option>
-        <option value="5">5</option>
-        <option value="6">6</option>
-        <option value="7">7</option>
-        <option value="8">8</option>
-        <option value="9">9</option>
-        <option value="10">10</option>
-    </select>
-    <button onclick="getOldestUsedFoods()">Fetch</button>
-    <ul id="unusedFoods"></ul>
+    <details>
+        <summary>Oldest Unused Foods</summary>
+        <input type="radio" id="oldMain" name="oldType" value="main" checked>
+        <label for="oldMain">Main</label>
+        <input type="radio" id="oldSoup" name="oldType" value="soup">
+        <label for="oldSoup">Soup</label><br>
+        <label for="foodCount">Number of foods:</label>
+        <select id="foodCount">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+        </select>
+        <button onclick="getOldestUsedFoods()">Fetch</button>
+        <ul id="unusedFoods"></ul>
+    </details>
     
-    <h2>Food Logs & Stats</h2>
-    <select id="logFoodSelect"></select>
-    <button onclick="getFoodLogs()">Fetch Logs</button>
-    <ul id="foodLogs"></ul>
-    <p id="foodStats"></p>
+    <details>
+        <summary>Food Logs & Stats</summary>
+        <select id="logFoodSelect"></select>
+        <button onclick="getFoodLogs()">Fetch Logs</button>
+        <ul id="foodLogs"></ul>
+        <p id="foodStats"></p>
+    </details>
 
-    <h2>Logs of Last X Days</h2>
-    <label for="daysCount">Number of days:</label>
-    <select id="daysCount">
-        <option value="2">2</option>
-        <option value="5">5</option>
-        <option value="7">7</option>
-        <option value="14">14</option>
-    </select>
-    <button onclick="getLogsOfLastXDays()">Fetch Logs</button>
-    <ul id="logsOfLastXDays"></ul>
+    <details>
+        <summary>Logs of Last X Days</summary>
+        <label for="daysCount">Number of days:</label>
+        <select id="daysCount">
+            <option value="2">2</option>
+            <option value="5">5</option>
+            <option value="7">7</option>
+            <option value="14">14</option>
+        </select>
+        <button onclick="getLogsOfLastXDays()">Fetch Logs</button>
+        <ul id="logsOfLastXDays"></ul>
+    </details>
 
-    <h2>Random Food Not Used for X Days</h2>
-    <input type="radio" id="randMain" name="randType" value="main" checked>
-    <label for="randMain">Main</label>
-    <input type="radio" id="randSoup" name="randType" value="soup">
-    <label for="randSoup">Soup</label><br>
-    <label for="unusedDaysCount">Number of days:</label>
-    <select id="unusedDaysCount">
-        <option value="7">7</option>
-        <option value="14">14</option>
-        <option value="21">21</option>
-        <option value="28">28</option>
-        <option value="35">35</option>
-        <option value="42">42</option>
-    </select>
-    <button onclick="getRandomUnusedFood()">Get Random Food</button>
-    <p id="randomUnusedFood"></p>
+    <details>
+        <summary>Random Food Not Used for X Days</summary>
+        <input type="radio" id="randMain" name="randType" value="main" checked>
+        <label for="randMain">Main</label>
+        <input type="radio" id="randSoup" name="randType" value="soup">
+        <label for="randSoup">Soup</label><br>
+        <label for="unusedDaysCount">Number of days:</label>
+        <select id="unusedDaysCount">
+            <option value="7">7</option>
+            <option value="14">14</option>
+            <option value="21">21</option>
+            <option value="28">28</option>
+            <option value="35">35</option>
+            <option value="42">42</option>
+        </select>
+        <button onclick="getRandomUnusedFood()">Get Random Food</button>
+        <p id="randomUnusedFood"></p>
+    </details>
     
-    <h2>Select Date</h2>
-    <input type="date" id="selectedDate" onchange="fetchLunchesByDate()">
-    <ul id="lunchesByDate"></ul>
+    <details>
+        <summary>Select Date</summary>
+        <input type="date" id="selectedDate" onchange="fetchLunchesByDate()">
+        <ul id="lunchesByDate"></ul>
+    </details>
     
     <script>
         const supabaseUrl = "https://lzcttpvfhmsgnbdkfuic.supabase.co";
