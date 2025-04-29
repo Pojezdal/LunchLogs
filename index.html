@@ -11,6 +11,7 @@
         input[type="radio"] { display: inline; margin-right: 5px; }
         summary { font-size: 1.2em; font-weight: bold; padding: 5px 0; }
         .pink_label { color: rgb(226, 24, 182); }
+        .inline-button { display: inline-block; }
     </style>
 </head>
 <body>
@@ -38,11 +39,11 @@
     </details>
     
     <details open>
-        <summary>Log Lunch</summary>
+        <summary>Add Lunch</summary>
         <select id="foodSelect"></select>
         <input type="date" id="lunchDate" value="">
         <input type="text" id="lunchNote" placeholder="Optional Note">
-        <button onclick="logLunch()">Log Lunch</button>
+        <button onclick="logLunch()">Add Lunch</button>
     </details>
     
     <details>
@@ -164,8 +165,8 @@
             let date = document.getElementById('lunchDate').value || new Date().toISOString().split('T')[0];
             let note = document.getElementById('lunchNote').value;
             await supabase.from('lunches').insert([{ "food": food_id, "date": date, "note": note }]);
-            alert('Lunch added successfully.');
             fetchTodaysLunches();
+            alert('Lunch added successfully.');
         }
         
         async function getOldestUsedFoods() {
@@ -182,12 +183,23 @@
         }
         
         async function getFoodLogs() {
+            document.getElementById('foodLogs').addEventListener('click', async (event) => {
+                if (event.target.classList.contains('delete-log-button')) {
+                    const logId = event.target.getAttribute('data-log-id');
+                    await deleteLog(logId);
+                }
+            });
             let food_id = document.getElementById('logFoodSelect').value;
             let { data, error } = await supabase.from('lunches').select('*').eq('food', food_id).order('date', { ascending: false });
             if (error) return console.error(error);
             
             let logList = document.getElementById('foodLogs');
-            logList.innerHTML = data.map(log => `<li>${log.date}: ${log.note || 'No note'}</li>`).join('');
+            logList.innerHTML = data.map(log => `
+                <li>
+                    ${log.date}: ${log.note || 'No note'}
+                    <button class="inline-button delete-log-button" data-log-id="${log.id}">Delete</button>
+                </li>
+            `).join('');
             
             if (data.length > 1) {
                 let lastDate = new Date(data[0].date);
@@ -201,6 +213,18 @@
                 let lastDate = new Date(data[0].date);
                 let daysSinceLast = Math.floor((new Date() - lastDate) / (1000 * 60 * 60 * 24));
                 document.getElementById('foodStats').textContent = `Days since last: ${daysSinceLast}`;
+            }
+        }
+
+        async function deleteLog(logId) {
+            if (confirm("Are you sure you want to delete this log?")) {
+                if (confirm("This action cannot be undone. Are you 100% sure?")) {
+                    let { error } = await supabase.from('lunches').delete().eq('id', logId);
+                    if (error) return console.error(error);
+                    getFoodLogs(); // Refresh the logs after deletion
+                    fetchTodaysLunches();
+                    alert('Log deleted successfully.');
+                }
             }
         }
 
