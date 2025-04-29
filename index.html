@@ -196,6 +196,12 @@
                 let avgUsage = (data.length - 1) / ((lastDate - firstDate) / (1000 * 60 * 60 * 24) / 30.4);
                 document.getElementById('foodStats').textContent = `Days since last: ${daysSinceLast}, Avg usage: ${avgUsage.toFixed(2)} times per month.`;
             }
+            else
+            {
+                let lastDate = new Date(data[0].date);
+                let daysSinceLast = Math.floor((new Date() - lastDate) / (1000 * 60 * 60 * 24));
+                document.getElementById('foodStats').textContent = `Days since last: ${daysSinceLast}`;
+            }
         }
 
         async function getLogsOfLastXDays() {
