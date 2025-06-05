@@ -53,18 +53,7 @@
         <input type="radio" id="oldSoup" name="oldType" value="soup">
         <label for="oldSoup">Soup</label><br>
         <label for="foodCount">Number of foods:</label>
-        <select id="foodCount">
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-            <option value="6">6</option>
-            <option value="7">7</option>
-            <option value="8">8</option>
-            <option value="9">9</option>
-            <option value="10">10</option>
-        </select>
+        <input type="number" id="foodCount" min="1" step="1" value="1">
         <button onclick="getOldestUsedFoods()">Fetch</button>
         <ul id="unusedFoods"></ul>
     </details>
@@ -108,6 +97,18 @@
         <button onclick="getRandomUnusedFood()">Get Random Food</button>
         <p id="randomUnusedFood"></p>
     </details>
+
+    <details>
+        <summary style="color: rgb(147, 147, 147);">Add Food to Forgotten</summary>
+        <select id="addForgottenFoodSelect"></select>
+        <button onclick="addFoodToForgotten()">Add Food</button>
+    </details>
+
+    <details>
+        <summary style="color: rgb(147, 147, 147);">Remove Food from Forgotten</summary>
+        <select id="removeForgottenFoodSelect"></select>
+        <button onclick="removeFoodFromForgotten()">Remove Food</button>
+    </details>
     
     <details>
         <summary>Select Date</summary>
@@ -129,13 +130,20 @@
             let foodSelect = document.getElementById('foodSelect');
             let logFoodSelect = document.getElementById('logFoodSelect');
             let deleteFoodSelect = document.getElementById('deleteFoodSelect');
+            let addForgottenFoodSelect = document.getElementById('addForgottenFoodSelect');
+            let removeForgottenFoodSelect = document.getElementById('removeForgottenFoodSelect');
+
             foodSelect.innerHTML = logFoodSelect.innerHTML = deleteFoodSelect.innerHTML = '';
-            
-            data.forEach(food => {                
-                let option = new Option(food.name, food.id);
-                foodSelect.add(option);
+            addForgottenFoodSelect.innerHTML = removeForgottenFoodSelect.innerHTML = '';
+
+            data.forEach(food => {
+                foodSelect.add(new Option(food.name, food.id));
                 logFoodSelect.add(new Option(food.name, food.id));
                 deleteFoodSelect.add(new Option(food.name, food.id));
+                if (food.forgotten)
+                    removeForgottenFoodSelect.add(new Option(food.name, food.id));
+                else
+                    addForgottenFoodSelect.add(new Option(food.name, food.id));
             });
         }
         
@@ -274,6 +282,22 @@
             } else {
                 document.getElementById('randomUnusedFood').textContent = `No ${food_type} food found that was not used for the specified amount of days.`;
             }
+        }
+
+        async function addFoodToForgotten() {
+            let food_id = document.getElementById('addForgottenFoodSelect').value;
+            if (!food_id) return;
+            await supabase.from('food_names').update({ forgotten: true }).eq('id', food_id);
+            fetchFoods();
+            alert('Food added to forgotten list.');
+        }
+
+        async function removeFoodFromForgotten() {
+            let food_id = document.getElementById('removeForgottenFoodSelect').value;
+            if (!food_id) return;
+            await supabase.from('food_names').update({ forgotten: false }).eq('id', food_id);
+            fetchFoods();
+            alert('Food removed from forgotten list.');
         }
 
         async function fetchTodaysLunches() {
